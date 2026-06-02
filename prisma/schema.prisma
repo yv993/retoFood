@@ -19,7 +19,12 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
+  // App runtime (serverless) uses the POOLED connection; migrations use the
+  // DIRECT one. Vercel Postgres injects both names automatically. `directUrl`
+  // is only used by the Prisma CLI (migrate), never at runtime — so if it's
+  // unset locally the app still runs.
+  url       = env("DATABASE_URL")
+  directUrl = env("DATABASE_URL_UNPOOLED")
 }
 
 model Order {
