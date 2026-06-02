@@ -1,13 +1,21 @@
-import { diagnose, createOrder, listOrders } from "@/lib/db";
+import { diagnose, createOrder, listOrders, deleteOrder } from "@/lib/db";
 import PageHead from "@/components/admin/PageHead";
 
 // Temporary admin-only diagnostics for verifying the production database wiring.
 export const dynamic = "force-dynamic";
 
-type SP = { searchParams: Promise<{ write?: string }> };
+type SP = { searchParams: Promise<{ write?: string; cleanup?: string }> };
 
 export default async function DiagnosticsPage({ searchParams }: SP) {
-  const { write } = await searchParams;
+  const { write, cleanup } = await searchParams;
+
+  let cleanupResult: unknown = null;
+  if (cleanup === "1") {
+    const all = await listOrders();
+    const tests = all.filter((o) => o.customerName?.startsWith("DB TEST"));
+    for (const o of tests) await deleteOrder(o.id);
+    cleanupResult = { deleted: tests.map((o) => o.ref), remaining: (await listOrders()).length };
+  }
 
   let writeResult: unknown = null;
   if (write === "1") {
@@ -36,7 +44,7 @@ export default async function DiagnosticsPage({ searchParams }: SP) {
     <div>
       <PageHead title="Diagnostics" subtitle="Database connectivity (admin only)." />
       <pre className="overflow-auto rounded-2xl border border-line bg-char p-6 text-sm text-sand">
-        {JSON.stringify({ diagnose: d, writeTest: writeResult }, null, 2)}
+        {JSON.stringify({ diagnose: d, writeTest: writeResult, cleanup: cleanupResult }, null, 2)}
       </pre>
       <p className="mt-4 text-sm text-muted">
         Add <code>?write=1</code> to create a real test order and confirm it persists.

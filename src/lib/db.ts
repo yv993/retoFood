@@ -144,6 +144,7 @@ interface Repo {
   getOrder(idOrRef: string): Promise<Order | undefined>;
   getOrderBySession(sessionId: string): Promise<Order | undefined>;
   updateOrderStatus(id: string, status: OrderStatus): Promise<Order | undefined>;
+  deleteOrder(id: string): Promise<void>;
 
   createReservation(input: Omit<Reservation, keyof Base>): Promise<Reservation>;
   listReservations(query?: Query): Promise<Reservation[]>;
@@ -287,6 +288,14 @@ const memoryRepo: Repo = {
     rec.updatedAt = now();
     await memPersist();
     return rec;
+  },
+  async deleteOrder(id) {
+    await memEnsure();
+    const i = mem.data.orders.findIndex((o) => o.id === id);
+    if (i >= 0) {
+      mem.data.orders.splice(i, 1);
+      await memPersist();
+    }
   },
 
   async createReservation(input) {
@@ -468,6 +477,9 @@ async function buildPrismaRepo(): Promise<Repo> {
       const r = await prisma.order.update({ where: { id }, data: { status } }).catch(() => null);
       return r ? norm<Order>(r) : undefined;
     },
+    async deleteOrder(id) {
+      await prisma.order.delete({ where: { id } }).catch(() => {});
+    },
 
     async createReservation(input) {
       return norm<Reservation>(await prisma.reservation.create({ data: { ref: makeRef("RES"), status: "requested", ...input } }));
@@ -625,6 +637,7 @@ export const listOrders: Repo["listOrders"] = async (q) => (await repo()).listOr
 export const getOrder: Repo["getOrder"] = async (i) => (await repo()).getOrder(i);
 export const getOrderBySession: Repo["getOrderBySession"] = async (s) => (await repo()).getOrderBySession(s);
 export const updateOrderStatus: Repo["updateOrderStatus"] = async (i, s) => (await repo()).updateOrderStatus(i, s);
+export const deleteOrder: Repo["deleteOrder"] = async (i) => (await repo()).deleteOrder(i);
 
 export const createReservation: Repo["createReservation"] = async (i) => (await repo()).createReservation(i);
 export const listReservations: Repo["listReservations"] = async (q) => (await repo()).listReservations(q);
