@@ -414,15 +414,12 @@ const memoryRepo: Repo = {
 /* ================================================================== */
 /* Backend B — Prisma / Postgres (loaded only when DATABASE_URL set)   */
 /* ================================================================== */
-// The specifiers are assembled at runtime so bundlers don't try to resolve
-// these at build time — they're only used for a real database (see
-// DEPLOYMENT.md). tsc never sees the modules either.
-const PRISMA_PKG = ["@prisma", "client"].join("/");
-const ACCELERATE_PKG = ["@prisma", "extension-accelerate"].join("/");
-
 /* eslint-disable @typescript-eslint/no-explicit-any */
 async function buildPrismaRepo(): Promise<Repo> {
-  const mod: any = await import(/* webpackIgnore: true */ PRISMA_PKG);
+  // Literal dynamic imports so Next traces + bundles these into the serverless
+  // function (they're listed in serverExternalPackages). They're real
+  // dependencies now and only load when a database URL is configured.
+  const mod: any = await import("@prisma/client");
   const PrismaClient = mod.PrismaClient;
   const gp = globalThis as unknown as { __bhPrisma?: any };
   // Prisma Postgres uses a prisma+postgres:// (Accelerate) URL, which requires
@@ -430,7 +427,7 @@ async function buildPrismaRepo(): Promise<Repo> {
   async function makeClient() {
     const base = new PrismaClient();
     try {
-      const accel: any = await import(/* webpackIgnore: true */ ACCELERATE_PKG);
+      const accel: any = await import("@prisma/extension-accelerate");
       return base.$extends(accel.withAccelerate());
     } catch {
       return base; // extension not installed → plain client (plain Postgres)
