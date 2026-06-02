@@ -1,0 +1,114 @@
+// BurgerHouse — production database schema (reference).
+//
+// The live app uses the dependency-free store in `src/lib/db.ts` (file-backed
+// in dev, in-memory fallback in read-only environments) so it builds and runs
+// with zero setup. For a durable production database, follow DEPLOYMENT.md:
+//
+//   1. npm i -D prisma && npm i @prisma/client
+//   2. set DATABASE_URL (Postgres) in your environment
+//   3. npx prisma migrate deploy   (or `prisma migrate dev` locally)
+//   4. swap the bodies of the functions in src/lib/db.ts for Prisma calls
+//      (the model fields below match the TypeScript interfaces 1:1).
+//
+// For local SQLite instead of Postgres, change `provider` to "sqlite" and set
+// DATABASE_URL="file:./dev.db".
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Order {
+  id              String   @id @default(uuid())
+  ref             String   @unique
+  status          String   @default("received") // received|preparing|ready|completed|cancelled
+  customerName    String?
+  email           String?
+  phone           String?
+  fulfillment     String // delivery|pickup
+  lines           Json
+  total           Int // dram
+  currency        String   @default("AMD")
+  stripeSessionId String?  @unique
+  note            String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([status])
+  @@index([createdAt])
+}
+
+model Reservation {
+  id        String   @id @default(uuid())
+  ref       String   @unique
+  status    String   @default("requested") // requested|confirmed|seated|no-show|cancelled
+  name      String
+  phone     String
+  email     String?
+  date      String
+  time      String
+  guests    Int
+  notes     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status])
+  @@index([date])
+}
+
+model CateringInquiry {
+  id           String   @id @default(uuid())
+  ref          String   @unique
+  status       String   @default("new") // new|quoted|won|lost
+  name         String
+  email        String
+  phone        String
+  eventType    String
+  serviceStyle String?
+  date         String?
+  startTime    String?
+  duration     String?
+  venue        String?
+  guests       Int
+  packageId    String?
+  packageName  String?
+  addOns       Json?
+  estimate     Int?
+  budget       String?
+  dietary      Json?
+  message      String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([status])
+}
+
+model NewsletterSignup {
+  id        String   @id @default(uuid())
+  ref       String   @unique
+  status    String   @default("active") // active|unsubscribed
+  email     String   @unique
+  source    String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model GiftCard {
+  id              String   @id @default(uuid())
+  ref             String   @unique
+  status          String   @default("requested") // requested|paid|redeemed|cancelled
+  amount          Int // dram
+  buyerEmail      String?
+  recipientEmail  String?
+  message         String?
+  code            String?  @unique
+  stripeSessionId String?  @unique
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([status])
+}
