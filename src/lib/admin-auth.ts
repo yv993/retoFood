@@ -15,22 +15,31 @@ import { cookies } from "next/headers";
 export const ADMIN_COOKIE = "bh_admin";
 const MESSAGE = "bh-admin-session-v1";
 
+/**
+ * The configured admin password, normalised — trims whitespace and strips a
+ * single pair of wrapping quotes. This makes setup forgiving of the most common
+ * dashboard paste mistakes (`"pass"` or a trailing space/newline).
+ */
+export function adminPassword(): string {
+  return (process.env.ADMIN_PASSWORD ?? "").trim().replace(/^(['"])([\s\S]*)\1$/, "$2");
+}
+
 export function adminConfigured(): boolean {
-  return !!process.env.ADMIN_PASSWORD;
+  return adminPassword().length > 0;
 }
 
 /** Expected cookie value for the current password, or null if unconfigured. */
 export function sessionToken(): string | null {
-  const pw = process.env.ADMIN_PASSWORD;
+  const pw = adminPassword();
   if (!pw) return null;
   return crypto.createHmac("sha256", pw).update(MESSAGE).digest("base64url");
 }
 
-/** Constant-time password check used at login. */
+/** Constant-time password check used at login (input is trimmed too). */
 export function checkPassword(input: string): boolean {
-  const pw = process.env.ADMIN_PASSWORD;
+  const pw = adminPassword();
   if (!pw) return false;
-  const a = Buffer.from(input);
+  const a = Buffer.from(input.trim());
   const b = Buffer.from(pw);
   return a.length === b.length && crypto.timingSafeEqual(a, b);
 }

@@ -9,7 +9,8 @@ const ADMIN_COOKIE = "bh_admin";
 const MESSAGE = "bh-admin-session-v1";
 
 function expectedToken(): string | null {
-  const pw = process.env.ADMIN_PASSWORD;
+  // Normalise to match src/lib/admin-auth.ts: trim + strip a wrapping quote pair.
+  const pw = (process.env.ADMIN_PASSWORD ?? "").trim().replace(/^(['"])([\s\S]*)\1$/, "$2");
   if (!pw) return null;
   return crypto.createHmac("sha256", pw).update(MESSAGE).digest("base64url");
 }
