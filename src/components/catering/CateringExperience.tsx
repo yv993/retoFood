@@ -48,8 +48,16 @@ export default function CateringExperience() {
     scrollToQuote();
   }
 
-  async function payDeposit() {
-    if (depositPending || !STRIPE_ENABLED) return;
+  async function handleDeposit() {
+    // Stripe is deferred (not available in Armenia yet) → funnel to the inquiry
+    // form, where the deposit is arranged by email. Re-enables automatically
+    // once Stripe keys exist.
+    if (!STRIPE_ENABLED) {
+      document.getElementById("c-name")?.focus();
+      scrollToQuote();
+      return;
+    }
+    if (depositPending) return;
     setDepositPending(true);
     const res = await createCateringDeposit({ packageName: pkg.name, guests: safeGuests });
     if (res.url) {
@@ -251,17 +259,20 @@ export default function CateringExperience() {
                 {/* Deposit */}
                 <button
                   type="button"
-                  onClick={payDeposit}
-                  disabled={!STRIPE_ENABLED || depositPending}
-                  title={STRIPE_ENABLED ? undefined : "Online deposits aren't enabled on this deployment yet"}
+                  onClick={handleDeposit}
+                  disabled={STRIPE_ENABLED && depositPending}
                   className="mt-4 inline-flex w-full cursor-pointer items-center justify-center gap-2 rounded-full border border-line px-6 py-3.5 text-sm font-bold text-cream transition-colors hover:border-gold hover:text-gold disabled:cursor-not-allowed disabled:opacity-60"
                 >
-                  {depositPending ? "Starting…" : "Pay deposit to lock your date"}
+                  {STRIPE_ENABLED
+                    ? depositPending
+                      ? "Starting…"
+                      : "Pay deposit to lock your date"
+                    : "Request your date hold"}
                 </button>
                 <p className="mt-2 text-center text-xs text-muted">
                   {STRIPE_ENABLED
                     ? "Refundable deposit · secures your event date"
-                    : "🔒 Online deposit isn't enabled here yet — send the inquiry and we'll arrange it."}
+                    : "Card deposits are coming soon — send the inquiry and we'll arrange your date hold by email."}
                 </p>
               </div>
             </div>

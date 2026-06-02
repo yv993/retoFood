@@ -10,7 +10,7 @@ export default async function PanelLayout({ children }: { children: React.ReactN
   // Defense in depth — the proxy guards first, this re-checks at render time.
   if (!(await isAdmin())) redirect("/admin/login");
 
-  const mode = storeMode();
+  const mode = await storeMode();
 
   return (
     <div className="mx-auto max-w-content px-4 py-6 sm:px-6 lg:py-10">

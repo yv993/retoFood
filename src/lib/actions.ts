@@ -6,11 +6,13 @@ import { sendEmail, esc, BUSINESS_EMAIL } from "@/lib/email";
 import { rateLimit } from "@/lib/ratelimit";
 import { isOpenAt } from "@/lib/hours";
 import {
+  createOrder,
   createReservation,
   createCateringInquiry,
   createNewsletterSignup,
   createGiftCard,
 } from "@/lib/db";
+import { sendOrderReceipt } from "@/lib/notify";
 
 export type ActionResult = { ok: true } | { ok: false; error: string };
 
@@ -359,6 +361,107 @@ export interface CheckoutInput {
 const PROMOS: Record<string, number> = { BURGER10: 10, YEREVAN15: 15 };
 const DELIVERY_FEE = 700;
 const VAT_RATE = 0.2;
+
+/* ------------------------------------------------------------------ */
+/* Place order WITHOUT a payment provider (cash / pay at restaurant).  */
+/* This is the primary checkout path while Stripe is deferred. It       */
+/* creates a real persisted Order, emails the customer + restaurant,    */
+/* and returns the reference for the success page.                      */
+/* ------------------------------------------------------------------ */
+export interface PlaceOrderInput {
+  lines: CheckoutLineInput[];
+  fulfillment: "delivery" | "pickup";
+  paymentMethod: "cash" | "restaurant";
+  name: string;
+  phone: string;
+  email?: string;
+  address?: string;
+  notes?: string;
+  tip?: number;
+  promo?: string;
+  company?: string; // honeypot
+}
+
+const PAYMENT_LABEL: Record<string, string> = {
+  cash: "Cash on delivery",
+  restaurant: "Pay at restaurant",
+};
+
+export async function placeOrder(
+  input: PlaceOrderInput,
+): Promise<{ ok: true; ref: string } | { ok: false; error: string }> {
+  if (input.company) return { ok: true, ref: "" }; // honeypot → pretend success
+  if (!rateLimit(`order:${await clientIp()}`, 8)) {
+    return { ok: false, error: "Too many attempts — please wait a moment." };
+  }
+  const name = (input.name ?? "").trim();
+  const phone = (input.phone ?? "").trim();
+  const email = input.email && emailOk(input.email) ? input.email.trim() : undefined;
+  if (!input.lines?.length) return { ok: false, error: "Your cart is empty." };
+  if (!name) return { ok: false, error: "Please enter your name." };
+  if (!phoneOk(phone)) return { ok: false, error: "Enter a valid phone number." };
+  if (input.fulfillment === "delivery" && !(input.address ?? "").trim()) {
+    return { ok: false, error: "Please add a delivery address." };
+  }
+  if (input.paymentMethod !== "cash" && input.paymentMethod !== "restaurant") {
+    return { ok: false, error: "Choose how you'll pay." };
+  }
+
+  // Totals are computed server-side — never trust the client.
+  let foodTotal = 0;
+  const orderLines = input.lines.map((l) => {
+    const addonSum = (l.addons ?? []).reduce((s, a) => s + a.price, 0);
+    const qty = Math.max(1, Math.min(99, Number(l.qty) || 1));
+    const lineSum = (l.price + addonSum) * qty;
+    foodTotal += lineSum;
+    const addonNames = (l.addons ?? []).map((a) => a.name).join(", ");
+    return { name: addonNames ? `${l.name} (${addonNames})` : l.name, qty, price: lineSum };
+  });
+
+  const deliveryFee = input.fulfillment === "delivery" ? DELIVERY_FEE : 0;
+  const tax = Math.round((foodTotal + deliveryFee) * VAT_RATE);
+  const tip = Math.max(0, Math.min(100000, Number(input.tip) || 0));
+  const pct = input.promo ? PROMOS[input.promo.trim().toUpperCase()] ?? 0 : 0;
+  const discount = pct > 0 ? Math.round((foodTotal * pct) / 100) : 0;
+  const total = Math.max(0, foodTotal + deliveryFee + tax + tip - discount);
+
+  const noteParts = [
+    PAYMENT_LABEL[input.paymentMethod],
+    input.address?.trim() ? `Address: ${input.address.trim()}` : "",
+    input.notes?.trim() ? `Notes: ${input.notes.trim()}` : "",
+    discount ? `Promo ${input.promo!.toUpperCase()} (−${dram(discount)})` : "",
+  ].filter(Boolean);
+
+  const order = await createOrder({
+    status: "received",
+    customerName: name,
+    email,
+    phone,
+    fulfillment: input.fulfillment,
+    paymentMethod: input.paymentMethod,
+    lines: orderLines,
+    total,
+    currency: "AMD",
+    note: noteParts.join(" · "),
+  });
+
+  // Customer confirmation (when an email is given) + restaurant notification.
+  if (email) await sendOrderReceipt(order);
+  await sendEmail({
+    to: BUSINESS_EMAIL,
+    replyTo: email,
+    subject: `New order ${order.ref} — ${dram(total)} (${PAYMENT_LABEL[input.paymentMethod]})`,
+    html: `<h2>New order — ${esc(PAYMENT_LABEL[input.paymentMethod])}</h2>
+      <p><b>Ref:</b> ${esc(order.ref)} · <b>${esc(input.fulfillment)}</b></p>
+      <p><b>Customer:</b> ${esc(name)} · ${esc(phone)}${email ? ` · ${esc(email)}` : ""}</p>
+      ${input.address?.trim() ? `<p><b>Address:</b> ${esc(input.address.trim())}</p>` : ""}
+      <ul>${orderLines.map((l) => `<li>${esc(l.name)} ×${l.qty} — ${dram(l.price)}</li>`).join("")}</ul>
+      <p><b>Total:</b> ${dram(total)} (incl. VAT ${dram(tax)}${deliveryFee ? `, delivery ${dram(deliveryFee)}` : ""}${tip ? `, tip ${dram(tip)}` : ""}${discount ? `, −${dram(discount)} promo` : ""})</p>
+      ${input.notes?.trim() ? `<p><b>Notes:</b> ${esc(input.notes.trim())}</p>` : ""}`,
+  });
+
+  return { ok: true, ref: order.ref };
+}
 
 export async function createCheckoutSession(
   input: CheckoutInput,

@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import PageHeader from "@/components/ui/PageHeader";
 import Prose from "@/components/ui/Prose";
-import { SITE } from "@/lib/site";
+import { SITE, LEGAL } from "@/lib/site";
 
 export const metadata: Metadata = {
   title: "Terms of Service",
@@ -13,18 +13,20 @@ export const metadata: Metadata = {
 export default function TermsPage() {
   return (
     <>
-      <PageHeader eyebrow="Legal" title="Terms of Service" subtitle="Last updated: June 2026" />
+      <PageHeader eyebrow="Legal" title="Terms of Service" subtitle={`Last updated: ${LEGAL.updated}`} />
       <section className="bg-ink pb-28 sm:pb-32">
         <div className="mx-auto max-w-3xl px-4 sm:px-6">
           <Prose>
             <p>
-              By using this website and placing orders you agree to these terms. This is a
-              template — have it reviewed by counsel before launch.
+              By using this website and placing orders you agree to these terms. They are an
+              agreement between you and {LEGAL.entity} (trading as {SITE.name}), {LEGAL.address}.
+              This is a template — have it reviewed by counsel before launch.
             </p>
-            <h2>Orders &amp; pricing</h2>
+            <h2>Orders &amp; payment</h2>
             <ul>
               <li>All prices are shown in Armenian Dram (֏) and include applicable VAT where stated.</li>
-              <li>Orders are confirmed once payment is completed via Stripe. We may refuse or cancel an order (e.g. items unavailable) and refund you.</li>
+              <li>You place an order on this site and pay <strong>cash on delivery</strong> or <strong>at the restaurant</strong> on collection. An order is a request that we confirm by phone or email; if online card payment is enabled in future, orders paid that way are confirmed on payment.</li>
+              <li>We may refuse or cancel an order (e.g. items unavailable) and, where you have already paid, refund you in full.</li>
               <li>Delivery times and fees are estimates and may vary.</li>
             </ul>
             <h2>Reservations</h2>
@@ -40,13 +42,14 @@ export default function TermsPage() {
             </p>
             <h2>Intellectual property &amp; liability</h2>
             <p>
-              All content is owned by {SITE.name}. To the extent permitted by law, our liability
+              All content is owned by {LEGAL.entity}. To the extent permitted by law, our liability
               is limited to the value of your order. These terms are governed by the laws of
               Armenia.
             </p>
             <h2>Contact</h2>
             <p>
-              Questions? Email <a href={`mailto:${SITE.contact.email}`}>{SITE.contact.email}</a>.
+              {LEGAL.entity}, {LEGAL.address} (reg. {LEGAL.regNumber}). Questions? Email{" "}
+              <a href={`mailto:${SITE.contact.email}`}>{SITE.contact.email}</a>.
             </p>
           </Prose>
         </div>

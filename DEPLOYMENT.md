@@ -36,34 +36,41 @@ a JSON file at `.data/db.json` locally, or an in-memory store on read-only/serve
 (logged as a warning). On Vercel's serverless runtime the in-memory store **resets between
 deploys and is per-instance**, so configure a real database for production.
 
-### Switch to Prisma + Postgres
+### Switch to Prisma + Postgres — no code changes
 
-1. Provision Postgres (Vercel Postgres, Neon, Supabase, RDS…) and copy its connection string into
-   `DATABASE_URL`.
-2. Install Prisma:
+`src/lib/db.ts` automatically uses **Postgres via Prisma when `DATABASE_URL` is set**, and the
+file/in-memory store otherwise. The Prisma client is loaded lazily, so you only add it for
+production. Exact steps:
+
+1. **Provision Postgres** (Vercel Postgres, Neon, Supabase, RDS…) and set `DATABASE_URL` to its
+   connection string (locally in `.env.local`, and in Vercel → Settings → Environment Variables).
+2. **Install Prisma:**
    ```bash
-   npm i -D prisma && npm i @prisma/client
+   npm i @prisma/client
+   npm i -D prisma
    ```
-3. The schema is already written — [`prisma/schema.prisma`](prisma/schema.prisma) (Postgres
-   provider, models matching `src/lib/db.ts` 1:1). Generate the client and run the first migration:
+3. **Add `postinstall` so the client is generated on every deploy** (`package.json`):
+   ```json
+   "scripts": { "postinstall": "prisma generate" }
+   ```
+4. **Create & apply the migration.** The schema is already written —
+   [`prisma/schema.prisma`](prisma/schema.prisma) (Postgres provider, models matching the
+   TypeScript interfaces 1:1):
    ```bash
-   npx prisma migrate dev --name init     # local
-   npx prisma generate
+   # local / first time — creates prisma/migrations and applies it
+   npx prisma migrate dev --name init
+
+   # CI / production release — applies committed migrations, no prompts
+   npx prisma migrate deploy
    ```
-   For CI/Vercel, add `prisma generate` to a `postinstall` script and run
-   `npx prisma migrate deploy` during release.
-4. Replace the function bodies in `src/lib/db.ts` with Prisma calls (the exported signatures stay
-   the same, so **no call sites change** — actions, admin pages, webhook, and CSV export all keep
-   working). Example:
-   ```ts
-   import { PrismaClient } from "@prisma/client";
-   const prisma = new PrismaClient();
-   export async function listOrders(q) {
-     return prisma.order.findMany({ orderBy: { createdAt: "desc" }, /* + where */ });
-   }
-   ```
-5. Seed (optional): adapt `scripts/seed.mjs` or write `prisma/seed.ts` and wire
-   `prisma.seed` in `package.json`.
+   On Vercel, set the **Build Command** to `prisma migrate deploy && next build` (or run
+   `prisma migrate deploy` as a release step), and commit the generated `prisma/migrations/`.
+5. **Deploy.** `db.ts` detects `DATABASE_URL`, loads Prisma, and every order / reservation /
+   catering inquiry / newsletter signup / gift card now reads & writes Postgres. No call sites
+   change. The `/admin` banner stops warning about the in-memory store. If `DATABASE_URL` is set
+   but the client isn't installed/generated yet, the app logs loudly and falls back to the file
+   store rather than crashing.
+6. **Seed (optional):** write `prisma/seed.ts` for Prisma, or `npm run db:seed` for the local file store.
 
 > **Local SQLite instead of Postgres:** change `provider` to `sqlite` in `prisma/schema.prisma`
 > and set `DATABASE_URL="file:./dev.db"`.

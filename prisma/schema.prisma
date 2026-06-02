@@ -30,6 +30,7 @@ model Order {
   email           String?
   phone           String?
   fulfillment     String // delivery|pickup
+  paymentMethod   String? // online|cash|restaurant
   lines           Json
   total           Int // dram
   currency        String   @default("AMD")

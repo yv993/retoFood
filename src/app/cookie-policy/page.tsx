@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import PageHeader from "@/components/ui/PageHeader";
 import Prose from "@/components/ui/Prose";
-import { SITE } from "@/lib/site";
+import { SITE, LEGAL } from "@/lib/site";
 
 export const metadata: Metadata = {
   title: "Cookie Policy",
@@ -12,7 +12,7 @@ export const metadata: Metadata = {
 export default function CookiePolicyPage() {
   return (
     <>
-      <PageHeader eyebrow="Legal" title="Cookie Policy" subtitle="Last updated: June 2026" />
+      <PageHeader eyebrow="Legal" title="Cookie Policy" subtitle={`Last updated: ${LEGAL.updated}`} />
       <section className="bg-ink pb-28 sm:pb-32">
         <div className="mx-auto max-w-3xl px-4 sm:px-6">
           <Prose>
@@ -39,7 +39,8 @@ export default function CookiePolicyPage() {
             </p>
             <h2>Contact</h2>
             <p>
-              {SITE.name} — <a href={`mailto:${SITE.contact.email}`}>{SITE.contact.email}</a>.
+              {LEGAL.entity} (trading as {SITE.name}) —{" "}
+              <a href={`mailto:${LEGAL.email}`}>{LEGAL.email}</a>.
             </p>
           </Prose>
         </div>

@@ -43,9 +43,16 @@ and guarded by [`src/proxy.ts`](src/proxy.ts) (Next 16's renamed middleware) **a
 each server component/action. Pages: Orders, Reservations, Catering, Newsletter, Gift cards — each
 searchable/filterable with detail views, a status workflow, and CSV export.
 
-**Checkout flow:** cart → `/checkout` → `createCheckoutSession` server action → Stripe Checkout →
-`/checkout/success` (clears cart) or `/checkout/cancel`. Line items are priced in AMD (dram),
+**Checkout flow (no payment provider required):** cart → `/checkout` → choose **Cash on delivery**
+or **Pay at restaurant** → `placeOrder` server action creates a persisted `Order` (status
+`received`), emails the customer + restaurant, clears the cart, and redirects to
+`/checkout/success?ref=ORD-…` with the order summary. Totals are computed server-side in AMD (dram)
 with delivery fee, 20% VAT, optional tip and promo codes (`BURGER10`, `YEREVAN15`).
+
+> **Stripe is intentionally deferred** (not available in Armenia yet). The "Pay online" option and
+> the catering deposit auto-appear the moment Stripe keys exist (`createCheckoutSession` +
+> `/api/stripe/webhook` are already wired) — no code change needed. Until then, the disabled paths
+> funnel to the cash/at-restaurant order and the catering inquiry.
 
 ## Getting Started
 

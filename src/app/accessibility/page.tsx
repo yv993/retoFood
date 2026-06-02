@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import PageHeader from "@/components/ui/PageHeader";
 import Prose from "@/components/ui/Prose";
-import { SITE } from "@/lib/site";
+import { SITE, LEGAL } from "@/lib/site";
 
 export const metadata: Metadata = {
   title: "Accessibility",
@@ -12,7 +12,7 @@ export const metadata: Metadata = {
 export default function AccessibilityPage() {
   return (
     <>
-      <PageHeader eyebrow="Commitment" title="Accessibility" subtitle="Last updated: June 2026" />
+      <PageHeader eyebrow="Commitment" title="Accessibility" subtitle={`Last updated: ${LEGAL.updated}`} />
       <section className="bg-ink pb-28 sm:pb-32">
         <div className="mx-auto max-w-3xl px-4 sm:px-6">
           <Prose>

@@ -3,43 +3,77 @@
  * Ported verbatim from the original index.html (copy, prices, images, sections).
  */
 
+/* ============================================================================
+   SINGLE SOURCE OF TRUTH — REAL BUSINESS VALUES
+   ----------------------------------------------------------------------------
+   Every line tagged `TODO: REPLACE WITH REAL VALUE` is placeholder content the
+   owner must replace before launch. Edit ONLY this object — components read
+   from it, so you never have to touch the UI code. Menu prices live in the
+   SIGNATURES and MENU arrays further down (also flagged).
+   ========================================================================== */
 export const SITE = {
-  name: "BurgerHouse",
+  name: "BurgerHouse", // TODO: REPLACE WITH REAL VALUE — legal/brand name
   tagline: "Gourmet Burgers · Yerevan",
   description:
     "BurgerHouse — Yerevan's gourmet burger house. Dry-aged Angus beef, house-baked brioche, and craft sauces, flame-grilled in the heart of the city.",
-  url: "https://burgerhouse.am",
+  url: "https://burgerhouse.am", // TODO: REPLACE WITH REAL VALUE — production domain (also set NEXT_PUBLIC_SITE_URL)
   themeColor: "#0E0E0F",
-  est: "2019",
+  est: "2019", // TODO: REPLACE WITH REAL VALUE — year established
   locale: { default: "en" as const },
   contact: {
-    addressLine: "14 Saryan St, Yerevan 0002, Armenia",
-    street: "14 Saryan St",
-    city: "Yerevan",
-    postal: "0002",
-    country: "Armenia",
-    phoneDisplay: "+374 10 00 00 00",
-    phoneHref: "+37410000000",
-    email: "hello@burgerhouse.am",
-    whatsappHref: "https://wa.me/37410000000",
+    addressLine: "14 Saryan St, Yerevan 0002, Armenia", // TODO: REPLACE WITH REAL VALUE — full address
+    street: "14 Saryan St", // TODO: REPLACE WITH REAL VALUE
+    city: "Yerevan", // TODO: REPLACE WITH REAL VALUE
+    postal: "0002", // TODO: REPLACE WITH REAL VALUE
+    country: "Armenia", // TODO: REPLACE WITH REAL VALUE
+    phoneDisplay: "+374 10 00 00 00", // TODO: REPLACE WITH REAL VALUE — phone (display)
+    phoneHref: "+37410000000", // TODO: REPLACE WITH REAL VALUE — phone (tel: digits, no spaces)
+    email: "hello@burgerhouse.am", // TODO: REPLACE WITH REAL VALUE — public email (also set CONTACT_EMAIL)
+    whatsappHref: "https://wa.me/37410000000", // TODO: REPLACE WITH REAL VALUE — wa.me/<countrycode+number>
     whatsappDisplay: "WhatsApp",
-    telegramHref: "https://t.me/burgerhouse_am",
-    telegramDisplay: "@burgerhouse_am",
-    hoursDisplay: "Mon–Thu 11:00–23:00 · Fri–Sun 11:00–01:00",
-    geo: { lat: 40.186, lng: 44.512 },
+    telegramHref: "https://t.me/burgerhouse_am", // TODO: REPLACE WITH REAL VALUE — Telegram handle URL
+    telegramDisplay: "@burgerhouse_am", // TODO: REPLACE WITH REAL VALUE
+    hoursDisplay: "Mon–Thu 11:00–23:00 · Fri–Sun 11:00–01:00", // TODO: REPLACE WITH REAL VALUE — see HOURS / HOURS_TABLE below
+    geo: { lat: 40.186, lng: 44.512 }, // TODO: REPLACE WITH REAL VALUE — exact map coordinates
     mapEmbed:
-      "https://www.openstreetmap.org/export/embed.html?bbox=44.505%2C40.182%2C44.520%2C40.190&layer=mapnik&marker=40.186%2C44.512",
-    mapLink: "https://www.openstreetmap.org/?mlat=40.186&mlon=44.512#map=17/40.186/44.512",
+      "https://www.openstreetmap.org/export/embed.html?bbox=44.505%2C40.182%2C44.520%2C40.190&layer=mapnik&marker=40.186%2C44.512", // TODO: REPLACE WITH REAL VALUE — embed for your exact location
+    mapLink: "https://www.openstreetmap.org/?mlat=40.186&mlon=44.512#map=17/40.186/44.512", // TODO: REPLACE WITH REAL VALUE
     social: {
-      instagram: "https://instagram.com/burgerhouse.am",
-      facebook: "https://facebook.com/burgerhouse.am",
-      tiktok: "https://tiktok.com/@burgerhouse.am",
+      instagram: "https://instagram.com/burgerhouse.am", // TODO: REPLACE WITH REAL VALUE
+      facebook: "https://facebook.com/burgerhouse.am", // TODO: REPLACE WITH REAL VALUE
+      tiktok: "https://tiktok.com/@burgerhouse.am", // TODO: REPLACE WITH REAL VALUE
     },
   },
 } as const;
 
-/** Image helper — keeps the EXACT Unsplash photos from the original. */
+/* ============================================================================
+   LEGAL — registered-entity placeholders for the legal pages.
+   These are deliberately bracketed so they're impossible to miss. Replace each
+   with your real registered details (the legal entity often differs from the
+   trading/brand name above) and have the pages reviewed by counsel.
+   ========================================================================== */
+export const LEGAL = {
+  entity: "[REGISTERED BUSINESS ENTITY — e.g. “BurgerHouse LLC”]", // TODO: REPLACE WITH REAL VALUE
+  regNumber: "[COMPANY / TAX REGISTRATION NUMBER]", // TODO: REPLACE WITH REAL VALUE
+  address: "[REGISTERED BUSINESS ADDRESS]", // TODO: REPLACE WITH REAL VALUE
+  email: "[LEGAL / PRIVACY CONTACT EMAIL]", // TODO: REPLACE WITH REAL VALUE
+  /** Update when you revise the legal copy. */
+  updated: "June 2026", // TODO: REPLACE WITH REAL VALUE
+} as const;
+
+import { LOCAL_IMAGE_IDS } from "@/lib/localImages";
+
+/** Photo ids self-hosted under /public/img (run `npm run fetch:images` to refresh). */
+const LOCAL_IMAGES = new Set(LOCAL_IMAGE_IDS);
+
+/**
+ * Image helper. Returns a LOCAL self-hosted path (/img/<id>.jpg) for any photo
+ * we've downloaded, so the site doesn't depend on Unsplash at runtime; falls
+ * back to the original Unsplash URL otherwise. (SafeImage adds a further
+ * fallback so an image never breaks.)
+ */
 export function unsplash(id: string, w = 1600): string {
+  if (LOCAL_IMAGES.has(id)) return `/img/${id}.jpg`;
   return `https://images.unsplash.com/photo-${id}?auto=format&fit=crop&w=${w}&q=80`;
 }
 
@@ -82,6 +116,8 @@ export interface SignatureBurger {
   badgeTone: "gold" | "ember";
 }
 
+// TODO: REPLACE WITH REAL VALUE — every `price` below is in dram (֏). Confirm
+// each signature burger's real menu price before launch.
 export const SIGNATURES: SignatureBurger[] = [
   {
     name: "The Ararat",
@@ -172,6 +208,8 @@ const COFFEE_ADDONS: Addon[] = [
   { name: "Vanilla syrup", price: 300 },
 ];
 
+// TODO: REPLACE WITH REAL VALUE — every menu item's `price` is in dram (֏).
+// Review and confirm all prices (and dish names/descriptions) before launch.
 export const MENU: MenuCategory[] = [
   {
     id: "starters",
@@ -974,6 +1012,9 @@ export const FAQS: Faq[] = [
 ];
 
 /** Weekly opening hours. Minutes from midnight; close > 1440 means after-midnight. */
+// TODO: REPLACE WITH REAL VALUE — full weekly opening hours. `open`/`close` are
+// minutes from midnight (660 = 11:00, 1380 = 23:00, 1500 = 01:00 next day).
+// Keep HOURS, HOURS_TABLE and SITE.contact.hoursDisplay in sync.
 export const HOURS: { open: number; close: number }[] = [
   { open: 660, close: 1500 }, // Sun 11:00–01:00
   { open: 660, close: 1380 }, // Mon 11:00–23:00
@@ -984,6 +1025,7 @@ export const HOURS: { open: number; close: number }[] = [
   { open: 660, close: 1500 }, // Sat 11:00–01:00
 ];
 
+// TODO: REPLACE WITH REAL VALUE — display version of the weekly hours above.
 export const HOURS_TABLE = [
   { day: "Monday", hours: "11:00 – 23:00" },
   { day: "Tuesday", hours: "11:00 – 23:00" },
@@ -1168,8 +1210,9 @@ export const CATERING = {
   /** Refundable deposit to lock a date (overridable via CATERING_DEPOSIT_AMD). */
   defaultDepositAmd: 50000,
   /** Placeholder catering menu PDF served from /public. */
-  menuPdf: "/catering-menu.pdf",
+  menuPdf: "/catering-menu.pdf", // TODO: REPLACE WITH REAL VALUE — replace public/catering-menu.pdf with the real menu
 
+  // TODO: REPLACE WITH REAL VALUE — confirm per-guest catering prices (dram) + add-on prices below.
   packages: [
     {
       id: "essential",
