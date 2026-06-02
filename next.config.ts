@@ -3,7 +3,7 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   // Prisma is loaded lazily by src/lib/db.ts (only when DATABASE_URL is set);
   // keep it external so it's never bundled into server output.
-  serverExternalPackages: ["@prisma/client", "prisma"],
+  serverExternalPackages: ["@prisma/client", "prisma", "@prisma/extension-accelerate"],
   images: {
     // Allow optimization of the original Unsplash photos (preserves the exact look)
     remotePatterns: [

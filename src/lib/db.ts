@@ -414,17 +414,29 @@ const memoryRepo: Repo = {
 /* ================================================================== */
 /* Backend B — Prisma / Postgres (loaded only when DATABASE_URL set)   */
 /* ================================================================== */
-// The specifier is assembled at runtime so bundlers don't try to resolve
-// @prisma/client at build time — it's an optional dependency you install only
-// for a real database (see DEPLOYMENT.md). tsc never sees the module either.
+// The specifiers are assembled at runtime so bundlers don't try to resolve
+// these at build time — they're only used for a real database (see
+// DEPLOYMENT.md). tsc never sees the modules either.
 const PRISMA_PKG = ["@prisma", "client"].join("/");
+const ACCELERATE_PKG = ["@prisma", "extension-accelerate"].join("/");
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 async function buildPrismaRepo(): Promise<Repo> {
   const mod: any = await import(/* webpackIgnore: true */ PRISMA_PKG);
   const PrismaClient = mod.PrismaClient;
   const gp = globalThis as unknown as { __bhPrisma?: any };
-  const prisma = gp.__bhPrisma ?? (gp.__bhPrisma = new PrismaClient());
+  // Prisma Postgres uses a prisma+postgres:// (Accelerate) URL, which requires
+  // the withAccelerate() extension. It's harmless for a plain postgres:// URL too.
+  async function makeClient() {
+    const base = new PrismaClient();
+    try {
+      const accel: any = await import(/* webpackIgnore: true */ ACCELERATE_PKG);
+      return base.$extends(accel.withAccelerate());
+    } catch {
+      return base; // extension not installed → plain client (plain Postgres)
+    }
+  }
+  const prisma = gp.__bhPrisma ?? (gp.__bhPrisma = await makeClient());
 
   const iso = (d: any) => (d instanceof Date ? d.toISOString() : d);
   const norm = <T>(r: any): T => ({ ...r, createdAt: iso(r?.createdAt), updatedAt: iso(r?.updatedAt) }) as T;
@@ -546,7 +558,7 @@ let repoPromise: Promise<Repo> | null = null;
 let resolvedMode: StoreMode = "file";
 
 async function selectRepo(): Promise<Repo> {
-  if (process.env.DATABASE_URL) {
+  if (process.env.PRISMA_DATABASE_URL || process.env.DATABASE_URL) {
     try {
       const repo = await buildPrismaRepo();
       resolvedMode = "postgres";
@@ -554,7 +566,7 @@ async function selectRepo(): Promise<Repo> {
       return repo;
     } catch (err) {
       console.error(
-        "[db] DATABASE_URL is set but the Prisma client isn't available — falling back to the file/memory store. Run `npm i @prisma/client && npx prisma generate` (see DEPLOYMENT.md).",
+        "[db] A database URL is set but the Prisma client isn't available — falling back to the file/memory store. Run `npm i @prisma/client && npx prisma generate` (see DEPLOYMENT.md).",
         err instanceof Error ? err.message : err,
       );
     }
