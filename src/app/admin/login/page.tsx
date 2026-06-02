@@ -27,12 +27,18 @@ export default async function AdminLogin({ searchParams }: SP) {
             Admin isn&rsquo;t configured. Set <code>ADMIN_PASSWORD</code> in the environment.
           </p>
         )}
-        {!configured && (
-          <p className="mt-4 rounded-xl border border-gold/40 bg-gold/10 px-4 py-3 text-xs text-gold">
-            Dev mode: <code>ADMIN_PASSWORD</code> isn&rsquo;t set — sign-in is open locally. Set it
-            before deploying.
-          </p>
-        )}
+        {!configured &&
+          (process.env.NODE_ENV === "production" ? (
+            <p className="mt-4 rounded-xl border border-ember/50 bg-ember/10 px-4 py-3 text-xs text-ember">
+              <code>ADMIN_PASSWORD</code> isn&rsquo;t set on this deployment, so sign-in is blocked.
+              Add it to your hosting environment (Production scope) and redeploy.
+            </p>
+          ) : (
+            <p className="mt-4 rounded-xl border border-gold/40 bg-gold/10 px-4 py-3 text-xs text-gold">
+              Dev mode: <code>ADMIN_PASSWORD</code> isn&rsquo;t set — sign-in is open locally. Set it
+              before deploying.
+            </p>
+          ))}
 
         <form action={login} className="mt-6 space-y-4">
           <input type="hidden" name="next" value={next ?? "/admin"} />
