@@ -587,6 +587,39 @@ export async function storeMode(): Promise<StoreMode> {
   return resolvedMode === "postgres" ? "postgres" : mem.mode;
 }
 
+/** Admin-only connection diagnostics (no secret values exposed). */
+export async function diagnose(): Promise<{
+  mode: StoreMode;
+  hasPrismaUrl: boolean;
+  hasDatabaseUrl: boolean;
+  hasPostgresUrl: boolean;
+  connected: boolean;
+  error: string | null;
+}> {
+  const hasPrismaUrl = !!process.env.PRISMA_DATABASE_URL;
+  const hasDatabaseUrl = !!process.env.DATABASE_URL;
+  const hasPostgresUrl = !!process.env.POSTGRES_URL;
+  let connected = false;
+  let error: string | null = null;
+  if (hasPrismaUrl || hasDatabaseUrl) {
+    try {
+      const r = await buildPrismaRepo();
+      await r.counts(); // force a real query
+      connected = true;
+    } catch (e) {
+      error = e instanceof Error ? `${e.name}: ${e.message}` : String(e);
+    }
+  }
+  return {
+    mode: await storeMode(),
+    hasPrismaUrl,
+    hasDatabaseUrl,
+    hasPostgresUrl,
+    connected,
+    error,
+  };
+}
+
 /* ------------------------------------------------------------------ */
 /* Public API — thin delegators (call sites never change)              */
 /* ------------------------------------------------------------------ */
